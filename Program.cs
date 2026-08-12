@@ -1,6 +1,7 @@
 using AIChat.Interfaces;
 using AIChat.Services;
 using AIChat.Configuration;
+using AIChat.Middleware;
 
 namespace AIChat
 {
@@ -31,7 +32,7 @@ namespace AIChat
 
             app.UseAuthorization();
 
-
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
             app.MapControllers();
 
             app.Run();

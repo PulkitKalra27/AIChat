@@ -4,6 +4,8 @@ using AIChat.Configuration;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Net;
+using AIChat.Exceptions;
 
 namespace AIChat.Services
 {
@@ -20,7 +22,7 @@ namespace AIChat.Services
         public async Task<ChatResponse> AskQuestionAsync(ChatRequest request)
         {
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/chat/completions");
-            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey);
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
             var openRouterRequest = new OpenRouterRequest
             {
@@ -35,8 +37,22 @@ namespace AIChat.Services
                 }
             };
             requestMessage.Content = JsonContent.Create(openRouterRequest);
-            var response = await _httpClient.SendAsync(requestMessage);
-            response.EnsureSuccessStatusCode();
+            //var response = await _httpClient.SendAsync(requestMessage);
+            var StatusCode = HttpStatusCode.Unauthorized;
+            var response = new HttpResponseMessage(StatusCode);
+            response.Content = JsonContent.Create(new
+            {
+                error = new
+                {
+                    message = "Invalid API Key"
+                }
+            });
+            //response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorbody = await response.Content.ReadAsStringAsync();
+                throw new AIProviderException(response.StatusCode, errorbody);
+            }
             var openRouterResponse = await response.Content.ReadFromJsonAsync<OpenRouterResponse>();
             var answer = openRouterResponse?.Choices.FirstOrDefault()?.Message.Content;
             return new ChatResponse
