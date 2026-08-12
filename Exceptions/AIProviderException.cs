@@ -9,5 +9,9 @@ namespace AIChat.Exceptions
         {
             StatusCode = statusCode;
         }
+        public AIProviderException(HttpStatusCode statusCode, string message,Exception innerException) : base(message,innerException)
+        {
+            StatusCode = statusCode;
+        }
     }
 }

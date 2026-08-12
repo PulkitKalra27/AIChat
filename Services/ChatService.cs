@@ -21,6 +21,7 @@ namespace AIChat.Services
         }
         public async Task<ChatResponse> AskQuestionAsync(ChatRequest request)
         {
+            //throw new InvalidOperationException("Simulated unexpected error");
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/chat/completions");
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
@@ -37,28 +38,39 @@ namespace AIChat.Services
                 }
             };
             requestMessage.Content = JsonContent.Create(openRouterRequest);
-            //var response = await _httpClient.SendAsync(requestMessage);
-            var StatusCode = HttpStatusCode.Unauthorized;
-            var response = new HttpResponseMessage(StatusCode);
-            response.Content = JsonContent.Create(new
+
+            //throw new HttpRequestException("Unable to connect To OpenRouter");
+            
+            try
             {
-                error = new
+                //response.Content = JsonContent.Create(new
+                //{
+                //    error = new
+                //    {
+                //        message = "Invalid API Key"
+                //    }
+                //});
+                //response.EnsureSuccessStatusCode();
+                var response = await _httpClient.SendAsync(requestMessage);
+                //var StatusCode = HttpStatusCode.ServiceUnavailable;
+                //var response = new HttpResponseMessage(StatusCode);
+                if (!response.IsSuccessStatusCode)
                 {
-                    message = "Invalid API Key"
+                    var errorbody = await response.Content.ReadAsStringAsync();
+                    throw new AIProviderException(response.StatusCode, errorbody);
                 }
-            });
-            //response.EnsureSuccessStatusCode();
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorbody = await response.Content.ReadAsStringAsync();
-                throw new AIProviderException(response.StatusCode, errorbody);
+                var openRouterResponse = await response.Content.ReadFromJsonAsync<OpenRouterResponse>();
+                var answer = openRouterResponse?.Choices.FirstOrDefault()?.Message.Content;
+                return new ChatResponse
+                {
+                    Response = answer ?? string.Empty
+                };
             }
-            var openRouterResponse = await response.Content.ReadFromJsonAsync<OpenRouterResponse>();
-            var answer = openRouterResponse?.Choices.FirstOrDefault()?.Message.Content;
-            return new ChatResponse
+            catch(HttpRequestException ex)
             {
-                Response = answer ?? string.Empty
-            };
+                throw new AIProviderException(HttpStatusCode.ServiceUnavailable, "Unable to communicate with AI Provider.", ex);
+            }
+
             //return await Task.FromResult(new ChatResponse
             //{
             //    Response = "Hello from ChatService"
