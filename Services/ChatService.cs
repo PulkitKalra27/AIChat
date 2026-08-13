@@ -76,5 +76,29 @@ namespace AIChat.Services
             //    Response = "Hello from ChatService"
             //});
         }
+
+        public async IAsyncEnumerable<string> StreamQuestionAsync(ChatRequest request)
+        {
+            var StreamingRequest = new OpenRouterStreamingRequest
+            {
+                Model = _options.Model,
+                Messages = new List<OpenRouterMessage>
+                {
+                    new OpenRouterMessage
+                    {
+                        Role = "user",
+                        Content = request.Message
+                    }
+                },
+                Stream = true
+            };
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/chat/completions");
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer",_options.ApiKey); 
+            requestMessage.Content = JsonContent.Create(StreamingRequest);
+
+            var response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
+            var stream = await response.Content.ReadAsStreamAsync();
+            yield break;
+        }
     }
 }
