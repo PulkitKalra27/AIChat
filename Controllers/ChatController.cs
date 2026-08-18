@@ -20,5 +20,16 @@ namespace AIChat.Controllers
             return Ok(response);
         }
 
+        [HttpPost("stream")]
+        public async Task StreamQuestionAsync(ChatRequest request)
+        {
+            Response.ContentType = "text/event-stream";
+            await foreach(var chunk in _chatService.StreamQuestionAsync(request))
+            {
+                await Response.WriteAsync($"data: {chunk}\n\n");
+                await Response.Body.FlushAsync();
+            }
+        }
+
     }
 }
