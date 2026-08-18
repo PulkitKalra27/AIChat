@@ -5,7 +5,10 @@ using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net;
+using System.IO;
 using AIChat.Exceptions;
+using System.Text.Json;
+
 
 namespace AIChat.Services
 {
@@ -88,7 +91,7 @@ namespace AIChat.Services
                     {
                         Role = "user",
                         Content = request.Message
-                    }
+                    }   
                 },
                 Stream = true
             };
@@ -98,7 +101,36 @@ namespace AIChat.Services
 
             var response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
             var stream = await response.Content.ReadAsStreamAsync();
-            yield break;
+            using var reader = new StreamReader(stream);
+            while(!reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync();
+                
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+                if (!line.StartsWith("data:"))
+                {
+                    continue;
+                }
+                var data = line["data:".Length..].Trim();
+                if (data == "[DONE]")
+                {
+                    break;
+                }
+                var chunk = JsonSerializer.Deserialize<OpenRouterStreamingResponse>(data,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                    });
+
+                var content = chunk?.Choices.FirstOrDefault()?.Delta?.Content;
+                if(!string.IsNullOrEmpty(content))
+                {
+                    yield return content;
+                }
+            }
         }
     }
 }
