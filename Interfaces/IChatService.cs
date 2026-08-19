@@ -4,7 +4,7 @@ namespace AIChat.Interfaces
 {
     public interface IChatService
     {
-        Task<ChatResponse> AskQuestionAsync(ChatRequest request);
+        //Task<ChatResponse> AskQuestionAsync(ChatRequest request);
         IAsyncEnumerable<string> StreamQuestionAsync(ChatRequest request);
     }
 }

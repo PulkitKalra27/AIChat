@@ -13,12 +13,12 @@ namespace AIChat.Controllers
         {
             _chatService = chatService;
         }
-        [HttpPost]
-        public async Task<ActionResult<ChatResponse>> AskQuestionAsync(ChatRequest request)
-        {
-            var response = await _chatService.AskQuestionAsync(request);
-            return Ok(response);
-        }
+        //[HttpPost]
+        //public async Task<ActionResult<ChatResponse>> AskQuestionAsync(ChatRequest request)
+        //{
+        //    var response = await _chatService.AskQuestionAsync(request);
+        //    return Ok(response);
+        //}
 
         [HttpPost("stream")]
         public async Task StreamQuestionAsync(ChatRequest request)

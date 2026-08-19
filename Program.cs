@@ -2,6 +2,9 @@ using AIChat.Interfaces;
 using AIChat.Services;
 using AIChat.Configuration;
 using AIChat.Middleware;
+using AIChat.Factories;
+using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
 
 namespace AIChat
 {
@@ -17,8 +20,16 @@ namespace AIChat
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.Configure<AIOptions>(builder.Configuration.GetSection("AI"));
-            builder.Services.AddHttpClient();
+            //builder.Services.AddHttpClient();
+            builder.Services.AddHttpClient<IOpenRouterClient,OpenRouterClient>((serviceProvider, client) =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<AIOptions>>().Value;
+                client.BaseAddress = new Uri(options.BaseUrl);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+            });
+
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IOpenRouterRequestFactory, OpenRouterRequestFactory>();
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("ReactFrontend", policy =>

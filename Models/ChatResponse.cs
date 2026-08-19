@@ -1,7 +1,7 @@
-﻿namespace AIChat.Models
-{
-    public class ChatResponse
-    {
-        public string Response { get; set; } = string.Empty;
-    }
-}
+﻿//namespace AIChat.Models
+//{
+//    public class ChatResponse
+//    {
+//        public string Response { get; set; } = string.Empty;
+//    }
+//}

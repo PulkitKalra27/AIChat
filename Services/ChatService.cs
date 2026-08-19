@@ -8,129 +8,79 @@ using System.Net;
 using System.IO;
 using AIChat.Exceptions;
 using System.Text.Json;
+using AIChat.Factories;
 
 
 namespace AIChat.Services
 {
     public class ChatService : IChatService
     {
-        private readonly HttpClient _httpClient;
-        private readonly AIOptions _options;
-
-        public ChatService(HttpClient httpClient, IOptions<AIOptions> options)
+        private readonly IOpenRouterClient _openRouterClient;
+        public ChatService(IOpenRouterClient openRouterClient)
         {
-            _httpClient = httpClient;
-            _options = options.Value;
+           _openRouterClient = openRouterClient;
         }
-        public async Task<ChatResponse> AskQuestionAsync(ChatRequest request)
-        {
-            //throw new InvalidOperationException("Simulated unexpected error");
-            var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/chat/completions");
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+        //public async Task<ChatResponse> AskQuestionAsync(ChatRequest request)
+        //{
+        //    //throw new InvalidOperationException("Simulated unexpected error");
+        //    var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/chat/completions");
+        //    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
 
-            var openRouterRequest = new OpenRouterRequest
-            {
-                Model = _options.Model,
-                Messages = new List<OpenRouterMessage>
-                {
-                    new OpenRouterMessage
-                    {
-                        Role = "user",
-                        Content = request.Message
-                    }
-                }
-            };
-            requestMessage.Content = JsonContent.Create(openRouterRequest);
+        //    var openRouterRequest = new OpenRouterRequest
+        //    {
+        //        Model = _options.Model,
+        //        Messages = new List<OpenRouterMessage>
+        //        {
+        //            new OpenRouterMessage
+        //            {
+        //                Role = "user",
+        //                Content = request.Message
+        //            }
+        //        }
+        //    };
+        //    requestMessage.Content = JsonContent.Create(openRouterRequest);
 
-            //throw new HttpRequestException("Unable to connect To OpenRouter");
+        //    //throw new HttpRequestException("Unable to connect To OpenRouter");
             
-            try
-            {
-                //response.Content = JsonContent.Create(new
-                //{
-                //    error = new
-                //    {
-                //        message = "Invalid API Key"
-                //    }
-                //});
-                //response.EnsureSuccessStatusCode();
-                var response = await _httpClient.SendAsync(requestMessage);
-                //var StatusCode = HttpStatusCode.ServiceUnavailable;
-                //var response = new HttpResponseMessage(StatusCode);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorbody = await response.Content.ReadAsStringAsync();
-                    throw new AIProviderException(response.StatusCode, errorbody);
-                }
-                var openRouterResponse = await response.Content.ReadFromJsonAsync<OpenRouterResponse>();
-                var answer = openRouterResponse?.Choices.FirstOrDefault()?.Message.Content;
-                return new ChatResponse
-                {
-                    Response = answer ?? string.Empty
-                };
-            }
-            catch(HttpRequestException ex)
-            {
-                throw new AIProviderException(HttpStatusCode.ServiceUnavailable, "Unable to communicate with AI Provider.", ex);
-            }
+        //    try
+        //    {
+        //        //response.Content = JsonContent.Create(new
+        //        //{
+        //        //    error = new
+        //        //    {
+        //        //        message = "Invalid API Key"
+        //        //    }
+        //        //});
+        //        //response.EnsureSuccessStatusCode();
+        //        var response = await _httpClient.SendAsync(requestMessage);
+        //        //var StatusCode = HttpStatusCode.ServiceUnavailable;
+        //        //var response = new HttpResponseMessage(StatusCode);
+        //        if (!response.IsSuccessStatusCode)
+        //        {
+        //            var errorbody = await response.Content.ReadAsStringAsync();
+        //            throw new AIProviderException(response.StatusCode, errorbody);
+        //        }
+        //        var openRouterResponse = await response.Content.ReadFromJsonAsync<OpenRouterResponse>();
+        //        var answer = openRouterResponse?.Choices.FirstOrDefault()?.Message.Content;
+        //        return new ChatResponse
+        //        {
+        //            Response = answer ?? string.Empty
+        //        };
+        //    }
+        //    catch(HttpRequestException ex)
+        //    {
+        //        throw new AIProviderException(HttpStatusCode.ServiceUnavailable, "Unable to communicate with AI Provider.", ex);
+        //    }
 
-            //return await Task.FromResult(new ChatResponse
-            //{
-            //    Response = "Hello from ChatService"
-            //});
-        }
+        //    //return await Task.FromResult(new ChatResponse
+        //    //{
+        //    //    Response = "Hello from ChatService"
+        //    //});
+        //}
 
-        public async IAsyncEnumerable<string> StreamQuestionAsync(ChatRequest request)
+        public IAsyncEnumerable<string> StreamQuestionAsync(ChatRequest request)
         {
-            var StreamingRequest = new OpenRouterStreamingRequest
-            {
-                Model = _options.Model,
-                Messages = new List<OpenRouterMessage>
-                {
-                    new OpenRouterMessage
-                    {
-                        Role = "user",
-                        Content = request.Message
-                    }   
-                },
-                Stream = true
-            };
-            var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/chat/completions");
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer",_options.ApiKey); 
-            requestMessage.Content = JsonContent.Create(StreamingRequest);
-
-            var response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
-            var stream = await response.Content.ReadAsStreamAsync();
-            using var reader = new StreamReader(stream);
-            while(!reader.EndOfStream)
-            {
-                var line = await reader.ReadLineAsync();
-                
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
-                if (!line.StartsWith("data:"))
-                {
-                    continue;
-                }
-                var data = line["data:".Length..].Trim();
-                if (data == "[DONE]")
-                {
-                    break;
-                }
-                var chunk = JsonSerializer.Deserialize<OpenRouterStreamingResponse>(data,
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                    });
-
-                var content = chunk?.Choices.FirstOrDefault()?.Delta?.Content;
-                if(!string.IsNullOrEmpty(content))
-                {
-                    yield return content;
-                }
-            }
+            return _openRouterClient.StreamChatAsync(request.message);
         }
     }
 }
