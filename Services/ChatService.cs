@@ -80,9 +80,35 @@ namespace AIChat.Services
         //    //});
         //}
 
-        public IAsyncEnumerable<string> StreamQuestionAsync(ChatRequest request)
+        public async IAsyncEnumerable<string> StreamQuestionAsync(ChatRequest request)
         {
-            return _openRouterClient.StreamChatAsync(request.message);
+            Guid conversationId;
+            if (request.conversationid==null)
+            {
+                var conversation = new Conversations
+                {
+                    id = Guid.NewGuid(),
+                    title = request.message,
+                    createdAt = DateTime.UtcNow,
+                };
+                await _conversationRepository.CreateConversationAsync(conversation);
+                conversationId = conversation.id;
+            }
+            else
+            {
+                conversationId = request.conversationid.Value;
+            }
+            var userMessage = new message
+            {
+                id = Guid.NewGuid(),
+                conversationid = conversationId,
+                role = "user",
+                content = request.message,
+                createdAt = DateTime.UtcNow,
+            };
+            await _conversationRepository.AddMessageAsync(userMessage);
+            yield break;
+            //return _openRouterClient.StreamChatAsync(request.message);
         }
     }
 }
