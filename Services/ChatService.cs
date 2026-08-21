@@ -16,9 +16,11 @@ namespace AIChat.Services
     public class ChatService : IChatService
     {
         private readonly IOpenRouterClient _openRouterClient;
-        public ChatService(IOpenRouterClient openRouterClient)
+        private readonly IConversationRepository _conversationRepository;
+        public ChatService(IOpenRouterClient openRouterClient, IConversationRepository conversationRepository)
         {
            _openRouterClient = openRouterClient;
+           _conversationRepository = conversationRepository;
         }
         //public async Task<ChatResponse> AskQuestionAsync(ChatRequest request)
         //{
