@@ -80,7 +80,7 @@ namespace AIChat.Services
         //    //});
         //}
 
-        public async IAsyncEnumerable<string> StreamQuestionAsync(ChatRequest request)
+        public async IAsyncEnumerable<ChatStreamEvent> StreamQuestionAsync(ChatRequest request)
         {
             Guid conversationId;
             if (request.conversationid==null)
@@ -98,6 +98,11 @@ namespace AIChat.Services
             {
                 conversationId = request.conversationid.Value;
             }
+            yield return new ChatStreamEvent
+            {
+                type = "conversation",
+                conversationId = conversationId.ToString()
+            };
             var userMessage = new message
             {
                 id = Guid.NewGuid(),
@@ -107,7 +112,21 @@ namespace AIChat.Services
                 createdAt = DateTime.UtcNow,
             };
             await _conversationRepository.AddMessageAsync(userMessage);
-            yield break;
+            var messages = await _conversationRepository.GetMessagesAsync(conversationId);
+            var openRouterMessages = messages.Select(message => new OpenRouterMessage
+            {
+                role = message.role,
+                content = message.content
+            }).ToList();
+            await foreach(var chunk in _openRouterClient.StreamChatAsync(openRouterMessages))
+            {
+                yield return new ChatStreamEvent
+                {
+                    type = "message",
+                    content = chunk
+                };
+            }
+            //yield break;
             //return _openRouterClient.StreamChatAsync(request.message);
         }
     }

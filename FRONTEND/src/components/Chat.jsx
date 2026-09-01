@@ -7,6 +7,25 @@ function Chat()
     const [message ,setMessage] = useState('')
     const [messages, setMessages] = useState([])
 
+    const [conversations,setConversations] = useState([
+        {
+        id: '111',
+        title: 'What is RAG?'
+        },
+        {
+            id: '222',
+            title: 'What are embeddings?'
+        },
+        {
+            id: '333',
+            title: 'Explain APIs'
+        }
+    ])
+    const [selectConversationId, setSelectConversationId] = useState(null)
+    function handleNewChat(){
+        setSelectConversationId(null)
+        setMessages([])
+    }
     async function handleSend(){
         if(!message.trim()){
             return
@@ -21,7 +40,7 @@ function Chat()
                 content:''
             
         }
-        setMessages([...messages,userMessage,assistantMessage])
+        setMessages(prevMessages => [...prevMessages, userMessage, assistantMessage])
         setMessage('')
         const response = await fetch('https://localhost:7245/api/chat/stream',{
             method:'POST',
@@ -29,6 +48,7 @@ function Chat()
                 'Content-Type':'application/json'
             },
             body:JSON.stringify({
+                conversationid: selectConversationId,
                 message:message
             })
         })
@@ -58,23 +78,26 @@ function Chat()
                     continue
                 }
 
-                let text = event.slice(5)
-
-                if (text.startsWith(' '))
+                let data = event.slice(5).trim()
+                if(data === '[DONE]')
                 {
-                    text = text.slice(1)
+                    continue
                 }
+                const chatstreamevent = JSON.parse(data) 
+                if(chatstreamevent.type === 'conversation')
+                    {
+                        console.log('Conversation ID:', chatstreamevent.conversationId)
+                        setSelectConversationId(chatstreamevent.conversationid)
+                    }
+                if(chatstreamevent.type === 'content')
+                    {
+                        setMessages(prevMessages => prevMessages.map((msg, index) =>
+                                index === prevMessages.length - 1? 
+                                {...msg,content: msg.content + chatstreamevent.content}: msg
+                            )
+                        )
 
-                setMessages(prevMessages =>
-                    prevMessages.map((msg, index) =>
-                        index === prevMessages.length - 1
-                            ? {
-                                ...msg,
-                                content: msg.content + text
-                            }
-                            : msg
-                    )
-                )
+                    }   
             }
         }
         // while(true)
@@ -100,12 +123,44 @@ function Chat()
         // ])
     }
     return(
-        <div className="chat">
-            <div className="chat-header">
-                <h1>AI Chat</h1>
+        <div className="chat-layout">
+            <div className="sidebar">
+                <div className="sidebar-header">
+                    <h1>AI Chat</h1>
+                </div>
+                <div className="conversation-list">
+                    <button onClick={handleNewChat}>+ New Chat</button>
+                </div>
+                <div className="conversation-separator">
+                        <h1>Recent Chats</h1>
+                </div>
+                {conversations.map(conversation =>(
+                    <div
+                    key = {conversation.id}
+                    className={`conversation-item ${selectConversationId === conversation.id ? 'selected' : ''}`}
+                    onClick={() => setSelectConversationId(conversation.id)} >
+                        {conversation.title}
+                    </div>
+                ))}
+                {/*
+                    <div className="conversation-item">
+                        What is RAG?
+                    </div>
+
+                    <div className="conversation-item">
+                        What are embeddings?
+                    </div>
+
+                    <div className="conversation-item">
+                        Explain APIs
+                    </div>
+                </div> */}
+            </div>    
+            <div className="chat">
+                
+                <MessageList messages={messages}/>
+                <ChatInput message={message} setMessage={setMessage} handleSend={handleSend}/>
             </div>
-            <MessageList messages={messages}/>
-            <ChatInput message={message} setMessage={setMessage} handleSend={handleSend}/>
         </div>
     )
 }

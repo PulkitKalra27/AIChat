@@ -1,8 +1,10 @@
 ﻿
+using AIChat.Models;
+
 namespace AIChat.Factories
 {
     public interface IOpenRouterRequestFactory
     {
-        HttpRequestMessage CreateStreamingRequest(string message);
+        HttpRequestMessage CreateStreamingRequest(List<OpenRouterMessage> messages);
     }
 }

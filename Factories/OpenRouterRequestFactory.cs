@@ -14,19 +14,12 @@ namespace AIChat.Factories
             _options = options.Value;
         }
         
-        public HttpRequestMessage CreateStreamingRequest(string message)
+        public HttpRequestMessage CreateStreamingRequest(List<OpenRouterMessage> messages)
         {
             var streamingRequest = new OpenRouterStreamingRequest
             {
                 model = _options.Model,
-                messages = new List<OpenRouterMessage>
-                {
-                    new OpenRouterMessage
-                    {
-                        role = "user",
-                        content = message
-                    }
-                },
+                messages = messages,
                 stream = true
             };
             var requestMessage = new HttpRequestMessage(HttpMethod.Post,"chat/completions");

@@ -1,7 +1,9 @@
-﻿namespace AIChat.Interfaces
+﻿using AIChat.Models;
+
+namespace AIChat.Interfaces
 {
     public interface IOpenRouterClient
     {
-        IAsyncEnumerable<string> StreamChatAsync(string message);
+        IAsyncEnumerable<string> StreamChatAsync(List<OpenRouterMessage> messages);
     }
 }

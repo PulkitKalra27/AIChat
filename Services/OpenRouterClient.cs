@@ -16,9 +16,9 @@ namespace AIChat.Services
             _httpClient = httpClient;
             _requestFactory = requestFactory;
         }
-        public async IAsyncEnumerable<string> StreamChatAsync(string message)
+        public async IAsyncEnumerable<string> StreamChatAsync(List<OpenRouterMessage> messages)
         {
-            var requestMessage = _requestFactory.CreateStreamingRequest(message);
+            var requestMessage = _requestFactory.CreateStreamingRequest(messages);
             //starts the processing as soon as the response header arrives.
             var response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
             var stream = await response.Content.ReadAsStreamAsync();
