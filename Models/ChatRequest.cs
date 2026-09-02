@@ -2,7 +2,8 @@
 {
     public class ChatRequest
     {
-        public string Message { get; set; } = string.Empty;
+        public Guid? conversationid { get; set; }
+        public string message { get; set; } = string.Empty;
     }
 }
     

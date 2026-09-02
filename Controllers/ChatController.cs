@@ -1,5 +1,6 @@
 ﻿using AIChat.Interfaces;
 using AIChat.Models;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIChat.Controllers
@@ -13,20 +14,21 @@ namespace AIChat.Controllers
         {
             _chatService = chatService;
         }
-        [HttpPost]
-        public async Task<ActionResult<ChatResponse>> AskQuestionAsync(ChatRequest request)
-        {
-            var response = await _chatService.AskQuestionAsync(request);
-            return Ok(response);
-        }
+        //[HttpPost]
+        //public async Task<ActionResult<ChatResponse>> AskQuestionAsync(ChatRequest request)
+        //{
+        //    var response = await _chatService.AskQuestionAsync(request);
+        //    return Ok(response);
+        //}
 
         [HttpPost("stream")]
         public async Task StreamQuestionAsync(ChatRequest request)
         {
             Response.ContentType = "text/event-stream";
-            await foreach(var chunk in _chatService.StreamQuestionAsync(request))
+            await foreach(var chatstreamevent in _chatService.StreamQuestionAsync(request))
             {
-                await Response.WriteAsync($"data: {chunk}\n\n");
+                var json = JsonSerializer.Serialize(chatstreamevent);
+                await Response.WriteAsync($"data: {json}\n\n");
                 await Response.Body.FlushAsync();
             }
         }
