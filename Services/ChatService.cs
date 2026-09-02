@@ -9,6 +9,7 @@ using System.IO;
 using AIChat.Exceptions;
 using System.Text.Json;
 using AIChat.Factories;
+using System.Text;
 
 
 namespace AIChat.Services
@@ -118,14 +119,26 @@ namespace AIChat.Services
                 role = message.role,
                 content = message.content
             }).ToList();
+            var fullResponse = new StringBuilder();
             await foreach(var chunk in _openRouterClient.StreamChatAsync(openRouterMessages))
             {
+                fullResponse.Append(chunk);
                 yield return new ChatStreamEvent
                 {
-                    type = "message",
+                    type = "content",
+                    conversationId = conversationId.ToString(),
                     content = chunk
                 };
             }
+            var assistantMessage = new message
+            {
+                id = Guid.NewGuid(),
+                conversationid = conversationId,
+                role = "assistant",
+                content = fullResponse.ToString(),
+                createdAt = DateTime.UtcNow,
+            };
+            await _conversationRepository.AddMessageAsync(assistantMessage);
             //yield break;
             //return _openRouterClient.StreamChatAsync(request.message);
         }

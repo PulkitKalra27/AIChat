@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect,useState} from 'react'
 import MessageList from './MessageList'
 import ChatInput from './ChatInput'
 
@@ -7,24 +7,23 @@ function Chat()
     const [message ,setMessage] = useState('')
     const [messages, setMessages] = useState([])
 
-    const [conversations,setConversations] = useState([
-        {
-        id: '111',
-        title: 'What is RAG?'
-        },
-        {
-            id: '222',
-            title: 'What are embeddings?'
-        },
-        {
-            id: '333',
-            title: 'Explain APIs'
-        }
-    ])
+    const [conversations,setConversations] = useState([])
     const [selectConversationId, setSelectConversationId] = useState(null)
     function handleNewChat(){
         setSelectConversationId(null)
         setMessages([])
+    }
+    async function loadConversations(){
+        const response = await fetch('https://localhost:7245/api/Conversation')
+        const data = await response.json()
+        setConversations(data)
+    }
+    useEffect(()=>{loadConversations()},[])
+    async function loadMessages(id){
+        setSelectConversationId(id)
+        const response = await fetch(`https://localhost:7245/api/Conversation/${id}/messages`)
+        const data = await response.json()
+        setMessages(data)
     }
     async function handleSend(){
         if(!message.trim()){
@@ -55,7 +54,7 @@ function Chat()
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
-
+        let isNewChat = !selectConversationId;
         while (true)
         {
             const { value, done } = await reader.read()
@@ -83,17 +82,21 @@ function Chat()
                 {
                     continue
                 }
-                const chatstreamevent = JSON.parse(data) 
-                if(chatstreamevent.type === 'conversation')
+                const ChatStreamEvent = JSON.parse(data) 
+                if(ChatStreamEvent.type === 'conversation')
                     {
-                        console.log('Conversation ID:', chatstreamevent.conversationId)
-                        setSelectConversationId(chatstreamevent.conversationid)
+                        // console.log('Conversation ID:', ChatStreamEvent.conversationId)
+                        setSelectConversationId(ChatStreamEvent.conversationId)
+                        if (isNewChat){
+                            loadConversations()
+                            isNewChat = false
+                        }
                     }
-                if(chatstreamevent.type === 'content')
+                if(ChatStreamEvent.type === 'content')
                     {
                         setMessages(prevMessages => prevMessages.map((msg, index) =>
                                 index === prevMessages.length - 1? 
-                                {...msg,content: msg.content + chatstreamevent.content}: msg
+                                {...msg,content: msg.content + ChatStreamEvent.content}: msg
                             )
                         )
 
@@ -138,7 +141,7 @@ function Chat()
                     <div
                     key = {conversation.id}
                     className={`conversation-item ${selectConversationId === conversation.id ? 'selected' : ''}`}
-                    onClick={() => setSelectConversationId(conversation.id)} >
+                    onClick={() => loadMessages(conversation.id)} >
                         {conversation.title}
                     </div>
                 ))}

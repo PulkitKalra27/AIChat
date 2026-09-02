@@ -34,6 +34,7 @@ namespace AIChat
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IOpenRouterRequestFactory, OpenRouterRequestFactory>();
             builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
+            builder.Services.AddScoped<IConversationService, ConversationService>();
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("ReactFrontend", policy =>

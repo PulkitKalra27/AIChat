@@ -33,5 +33,11 @@ namespace AIChat.Repositories
                 .Where(message => message.conversationid == conversationId)
                 .OrderBy(message => message.createdAt).ToListAsync();
         }
+        public async Task<List<Conversations>> GetConversationsAsync()
+        {
+            return await _context.Conversations
+                .OrderByDescending(Conversations => Conversations.createdAt)
+                .ToListAsync();
+        }
     }
 }
